@@ -6,17 +6,40 @@
 
 (defmacro retlist [l] `~l)
 
-(ae (retlist [1 2 3]) [1 2 3])
 
 (defmacro retlistapp [l] `(conj ~l 4))
 
-(ae (retlistapp [1 2 3]) [1 2 3 4])
+
+
+(def problems {})
 
 (defn current_problem [] 31)
 
-(defmacro defproblem [n answer body] 
-  `(if (= ~n (current_problem)) (println "problem" `n ~body)))
+(def problems (atom {}))
 
+(defn add-problem [n answer body]
+  (let [
+    ph {:n n :answer answer :body body}
+    mh {n ph}
+    swap-func #(merge % mh)]
+    (swap! problems swap-func)))
+    
+(defn run-problem [n]
+  (let [
+    ph (get @problems n)
+    body (:body ph)
+    eval-answer (eval body)
+    exp-answer (:answer ph)]
+    (if (= eval-answer exp-answer)
+      (println "problem" n "correct" eval-answer)
+      (println "problem" n "incorrect!!!!" "expected" exp-answer "got" eval-answer))))
+
+(defmacro defproblem-old [n answer body] 
+  `(if (= ~n (current_problem)) (println "problem" `n ~body)))
+  
+(defmacro defproblem [n answer body] 
+  `(add-problem ~n ~answer (quote ~body)))
+  
 (defn factor? [n,mult] (if (= (mod mult n) 0) true false))
 
 (defn factors [mult] 
@@ -559,8 +582,6 @@
     h {"A" 1 "B" 2 "C" 3 "D" 4 "E" 5 "F" 6 "G" 7 "H" 8 "I" 9 "J" 10 "K" 11 "L" 12 "M" 13 "N" 14 "O" 15 "P" 16 "Q" 17 "R" 18 "S" 19 "T" 20 "U" 21 "V" 22 "W" 23 "X" 24 "Y" 25 "Z" 26}]
     (h s)))
 
-(println (s/take 3 "abcde"))
-
 (defn letters [s]
   (map str (seq s)))
     
@@ -582,7 +603,7 @@
         (* (inc i) (string-value (nth sorted i))))]
     (sum (map total-val (range 0 (count sorted))))))
 
-(println (let [
+(let [
     deficient? 
       (fn [n]
         (> n (inc (sum (factors n)))))
@@ -591,7 +612,7 @@
         (< n (inc (sum (factors n)))))
     abundant
       (filter abundant? (range 1 16000))]
-    (count abundant)))
+    (count abundant))
     
 (defproblem 23 nil
   (let [
@@ -611,7 +632,7 @@
     
 
     
-(defn problem-31 []
+(defproblem 31 73682
   (let [
     all-coins [1 2 5 10 20 50 100 200]
     fresh-naked-solution {1 0 2 0 5 0 10 0 20 0 50 0 100 0 200 0}
@@ -681,7 +702,7 @@
     
 (defn -main [& args]   
   (println "main-start")
-  (println (fact 5)) 
+  (run-problem 31) 
   (println "main over"))   
     
     
