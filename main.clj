@@ -411,6 +411,28 @@
     sorted
       (sort-by first counts)]
     (time (last sorted))))
+    
+(defproblem 14 837799
+  (let [
+    next-num
+      (fn [n]
+        (if (even? n)
+          (/ n 2)
+          (+ (* 3 n) 1)))
+    
+    seq-len
+      (fn [curr prev-len]
+        (if (= 1 curr)
+          prev-len
+          (recur (next-num curr) (inc prev-len))))
+          
+    all-seq
+      (map #(list % (seq-len % 1)) (range 1 1000000))
+      
+    sorted
+      (sort-by last all-seq)]
+          
+    (first (last sorted))))
   
 (defn number-word [n]
   (let [
@@ -744,7 +766,7 @@
     
 (defn -main [& args]   
   (println "main-start")
-  (run-problem 4) 
+  (run-problem 14) 
   (println "main over"))   
     
     
