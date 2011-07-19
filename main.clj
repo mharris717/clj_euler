@@ -2,7 +2,7 @@
   (:require [clojure.contrib.string :as s])
   (:require [clojure.contrib.combinatorics :as cb]))
   
-(defn ae [a b] (if (= a b) (println "equal") (println "not equal" a b)))
+(defn ae [a b] (if (= a b) () (println "not equal" a b)))
 
 (defmacro retlist [l] `~l)
 
@@ -33,6 +33,15 @@
     (if (= eval-answer exp-answer)
       (println "problem" n "correct" eval-answer)
       (println "problem" n "incorrect!!!!" "expected" exp-answer "got" eval-answer))))
+      
+(defmacro run-problem-macro [n]
+  `(let [
+    ph# (get @problems ~n)
+    eval-answer# (:body (get @problems ~n))
+    exp-answer# (:answer ph#)]
+    (if (= eval-answer# exp-answer#)
+      (println "problem" ~n "correct" eval-answer#)
+      (println "problem" ~n "incorrect!!!!" "expected" exp-answer# "got" eval-answer#))))
 
 (defmacro defproblem-old [n answer body] 
   `(if (= ~n (current_problem)) (println "problem" `n ~body)))
@@ -59,8 +68,8 @@
   (reduce + x))
 
 (defproblem 1 233168
-  (let [mults (filter #(or (factor? 3 %) (factor? 5 %)) (range 1 1000))]
-    (sum mults)))
+  (let [mults (filter #(or (main/factor? 3 %) (main/factor? 5 %)) (range 1 1000))]
+    (main/sum mults)))
 
 (defn fib
   ([] (fib 1 2))
@@ -80,10 +89,15 @@
     (first (filter prime? nums))))
     
 (defn most [list]
-  (map #(get list %) (range 0 (- (count list) 1))))
+  (map #(nth list %) (range 0 (- (count list) 1))))
   
 (defn nstrlist [n]
-  (seq (str n)))
+  (map str (seq (str n))))
+  
+(ae (.. (first (nstrlist 123)) getClass) java.lang.String)
+(ae (list "1" "2" "3") (nstrlist 123))
+(ae ["1" "2" "3"] (nstrlist 123))
+
 
 (defn palindrome? [s]
   (if (<= (count s) 1)
@@ -92,9 +106,18 @@
       (palindrome? (rest (most s)))
       false)))
       
+(defn palindrome-num? [n]
+  (palindrome? (nstrlist n)))
+      
+(ae true (palindrome-num? 121))
+(ae false (palindrome-num? 123))
+(ae true (palindrome-num? 1221))
+(ae true (palindrome-num? 1))
+(ae false (palindrome-num? 990009))
+
 (defn one? [l] (= (count l) 1))
       
-(defn combinationss [a b]
+(defn combinations-old [a b]
   (if (or (= a []) (= b []))
     []
     (if (one? a)
@@ -106,23 +129,42 @@
   (cb/cartesian-product a b))
         
         
-(defn combinationsx [a b]
+(defn combinations-old2 [a b]
   (if (or (= a []) (= b []))
     []
     (concat
       (map #(concat [(first a)] [%]) b)
-      (combinationsx (rest a) b))))
+      (combinations-old2 (rest a) b))))
 
 (defn product [l]
   (if (empty? l) 
     1
     (* (first l) (product (rest l)))))
+    
+(defn str-list-to-nums [l]
+  (map #(Integer/parseInt %) l))
+    
+(defn list-to-num [l]
+  (if (= (count l) 0)
+    0
+  (if (= (count l) 1)
+    (first l)
+    (+ 
+      (* 10 (list-to-num (most l)))
+      (last l)))))
 
-(defproblem 44 nil
-  (let [combs (combinations (range 100 1000) (range 100 1000))
-        nums (map product combs)
-        num_lists (map nstrlist nums)]
-    (first (reverse (filter palindrome? num_lists)))))
+(ae (list-to-num [1 2 3]) 123)
+
+(defproblem 4 nil
+  (let [
+    dup-combs (main/combinations (range 100 1000) (range 100 1000))
+    combs (filter #(>= (first %) (last %)) dup-combs)
+    nums (map main/product combs)
+    num-lists (map main/nstrlist nums)
+    all-pal-list (map main/str-list-to-nums (filter main/palindrome? num-lists))
+    all-pal (map main/list-to-num all-pal-list)]
+    (last (sort all-pal))))
+    
 
 (defn all-factors? [fs,n]
   (every? #(factor? % n) fs))
@@ -702,7 +744,7 @@
     
 (defn -main [& args]   
   (println "main-start")
-  (run-problem 31) 
+  (run-problem 4) 
   (println "main over"))   
     
     
