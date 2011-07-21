@@ -213,13 +213,6 @@
 (defn hypo [a,b]
   (Math/sqrt (+ (square a) (square b))))
       
-(defn pyth-triplesd []
-  (let [all-poss (combinations (range 1 500) (range 1 500))
-        trips (map (fn [x] (concat x [(hypo (nth x 0) (nth x 1))])) all-poss)
-        is-trip #(square? (last %))
-        good-trips (filter is-trip trips)]
-      (filter #(= 1000 (sum %)) good-trips)))
-      
 (defn pyth-triples []
   (let [all-poss (combinations (range 1 500) (range 1 500))
         trips (map (fn [x] (concat x [(hypo (nth x 0) (nth x 1))])) all-poss)
@@ -227,10 +220,7 @@
         good-trips (filter is-trip trips)]
       (filter #(> (nth % 1) (nth % 0)) good-trips)))
       
-(defn pyth-triples2 []
-  (let [all-poss (combinations (range 1 10) (range 1 10))
-        trips (map (fn [x] (concat x [(hypo (nth x 0) (nth x 1))])) all-poss)]
-      trips))
+
 
 (defproblem 9 318750000
   (product (first (filter #(= (sum %) 1000) (pyth-triples)))))
@@ -764,10 +754,122 @@
           
     (count (solve-rem 200))))
     
+(defn thrush-test []
+  (println 
+    (-> inc (map [1 2 3])))
+    
+  (println
+    (->> (map inc [1 2 3 4 5]) (filter even?) (apply +))))
+    
+(defn reject [f c]
+  (filter #(not (f %)) c))
+
+
+
+
+(defn num-paths [x y]
+  (if (zero? x)
+    1
+  (if (zero? y)
+    1
+    (+
+      (num-paths (dec x) y)
+      (num-paths x (dec y))))))
+
+(defproblem 159 nil
+  (let [
+    max-x 20
+    max-y 20]
+    (main/num-paths max-x max-y)))
+    
+
+    
+(defn add-to-key [h k n]
+  (if (nil? (get h k))
+    (merge h {k n})
+    (merge h {k (+ n (get h k))})))
+    
+(defn all? [f l]
+  (if (empty? l)
+    true
+  (if (f (first l))
+    (all? f (rest l))
+    false)))
+    
+(defproblem 15 nil
+  (let [
+    max-x 20
+    max-y 20
+    start-spot {:x max-x :y max-y}
+    start-path-hash {start-spot 1}
+    
+    done?
+      (fn [c]
+        (or
+          (>= 1 (:x c))
+          (>= 1 (:y c))))
+          
+    sorted-path
+      (fn [path]
+        (if (> (:x path) (:y path))
+          path
+          {:x (:y path) :y (:x path)}))
+          
+    next-paths
+      (fn [path]
+        [(sorted-path (main/add-to-key path :x -1))
+         (sorted-path (main/add-to-key path :y -1))])
+          
+    next-paths-hash
+      (fn [ps]
+        (let [
+          reduce-f
+            (fn [new-hash [path cnt]]
+              (let [
+                a (main/add-to-key new-hash (first (next-paths path)) cnt)
+                b (main/add-to-key a (last (next-paths path)) cnt)]
+                (if (done? path)
+                  (merge new-hash {path cnt})
+                  b)))]
+                
+          (reduce reduce-f {} ps)))
+            
+    all-paths
+      (fn [paths]
+        (println paths)
+        (if (main/all? done? (keys paths))
+            paths
+            (recur (next-paths-hash paths))))
+            
+    path-score
+      (fn [path]
+        (+ (:x path) (:y path)))
+            
+    score
+      (fn [paths]
+        (reduce
+          (fn [res [path cnt]]
+            (+ res (* cnt (path-score path))))
+          0 paths))]
+            
+    (score (all-paths start-path-hash))))
+    
+    
+  
+          
+    
 (defn -main [& args]   
   (println "main-start")
-  (run-problem 14) 
-  (println "main over"))   
+  (run-problem 15) 
+
+  (println "main over")
+  (println 
+    (mapcat #(list % %) [[1 4] [2] [3]]))
+  (reduce 
+    (fn [a [b c]]
+      (println a b)
+      b) 
+    1 {1 2 3 4}))
     
     
     
