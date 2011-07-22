@@ -1,6 +1,7 @@
 (ns main
   (:require [clojure.contrib.string :as s])
-  (:require [clojure.contrib.combinatorics :as cb]))
+  (:require [clojure.contrib.combinatorics :as cb])
+  (:require [clojure.test :as tt]))
   
 (defn ae [a b] (if (= a b) () (println "not equal" a b)))
 
@@ -60,6 +61,8 @@
     all
       (concat bottom top)]
   (distinct all)))
+  
+(def factors (memoize factors))
 
 (defn sudm [x]
   (if (= x []) 0 (+ (first x) (sudm (rest x)))))
@@ -73,7 +76,11 @@
 
 (defn fib
   ([] (fib 1 2))
-  ([a b] (lazy-seq (cons (+ a b) (fib b (+ a b))))))
+  ([a b] 
+    (lazy-seq 
+      (cons 
+        (+ a b) 
+        (fib b (+ a b))))))
 
 (defproblem 2 4613732 
   (let [fibs (take-while #(> 4000000 %) (fib))]
@@ -180,7 +187,7 @@
         square-sums (square (sum (range 1 101)))]
       (- sum-squares square-sums)))
       
-(defn primes [] (filter prime? (range 2 1000000000000000)))
+(def primes (filter prime? (range 2 1000000000000000)))
 
 (defn primes-under [n]
   (take-while #(> n %) (primes)))
@@ -645,6 +652,21 @@
 (defn include? [arr,n]
   (not (empty? (filter #(= n %) arr))))
   
+(tt/with-test
+  (defn include-sorted? [l el]
+    (if (empty? l)
+      false
+    (if (> (first l) el)
+      false
+    (if (= (first l) el)
+      true
+      (include-sorted? (rest l) el)))))
+      
+  (tt/is (include-sorted? [1 2 3] 1))
+  (tt/is (not (include-sorted? [1 2 3] 4)))
+  (tt/is (include-sorted? (fib) 5))
+  (tt/is (not (include-sorted? (fib) 4))))
+  
 
 
   
@@ -853,28 +875,97 @@
           0 paths))]
             
     (score (all-paths start-path-hash))))
-    
-    
+
+(tt/with-test
+  (defn tri-nums
+    ([] (tri-nums 1))
+    ([n]
+      (lazy-seq
+        (cons
+          (* 0.5 n (dec n))
+          (tri-nums (inc n))))))
+        
+  (tt/is (= 10 (nth (tri-nums) 4))))
   
+(defn all-windows [min-size max-size l]
+  (mapcat 
+    (fn [i]
+      (partition i 1 l))
+    (range min-size (inc max-size))))
+    
+(println (all-windows 1 3 (range 1 10)))
+
+(println (last (take 550 primes)))
+  
+(defproblem 50 997651
+  (let [
+    max-val 1000000
+    ps (take 550 main/primes)
+    windows (main/all-windows 499 560 ps)
+    sorted-windows (reverse (sort-by count windows))
+    prime-windows (filter #(main/prime? (main/sum %)) sorted-windows)
+    valid-windows (filter #(> max-val (main/sum %)) prime-windows)]
+    
+    (println (first valid-windows))
+    (println (count (first valid-windows)))
+    (println (main/sum (first valid-windows)))
+    (sum (first valid-windows))))
+
+(defn mseq [s]
+  (if (seq? s) s (if (nil? s) [] [s])))
+
+(tt/with-test 
+  (defn list-perms [l]
+    (println "here" l)
+    (let [
+        rp (fn [] (list-perms (rest l)))
+        fe (first l)
+        
+        el-added-to-first
+          (fn [ll el]
+            (if (= (count ll) 1)
+              (cons [(first )])
+            (cons
+              (cons el (mseq (first ll)))
+              (mseq (rest (mseq ll))))))]
+
+              
+        (if (>= 2 (count l))
+          [l [l]]
           
+          (concat
+            (map #(cons fe %) [(rp)])
+            (map #(cons fe %) (rp))
+            (map #(cons [fe] %) [(rp)])
+            (map #(cons [fe] %) (rp))
+            (map #(el-added-to-first % fe) (rp))))))
+    (tt/is (= `((1 (2 3)) (1 2 3) ((1 2) 3)) (list-perms `(1 2 3)))))
+
+(defn reverse-nested [l]
+  (if (or (seq? l) (vector? l))
+    (map reverse-nested (reverse l))
+    l))
+    
+(println (reverse-nested [1 [2 3] 4]))
+
+(def seed `((1 (2 3 4)) (1 ((2 3) 4)) (1 (2 (3 4))) the rest in own parens
+(1 2 3 4) (1 (2 3) 4) (1 2 (3 4))))
+
+
+
+
+
+    
     
 (defn -main [& args]   
   (println "main-start")
-  (run-problem 15) 
-
-  (println "main over")
-  (println 
-    (mapcat #(list % %) [[1 4] [2] [3]]))
-  (reduce 
-    (fn [a [b c]]
-      (println a b)
-      b) 
-    1 {1 2 3 4}))
+  `(run-problem 50) 
+  `(tt/run-tests 'main)
+  (println "main over"))
     
     
     
     
     
     
-    
-    
+  
