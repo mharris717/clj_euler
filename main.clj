@@ -28,7 +28,8 @@
 (defn run-problem [n]
   (let [
     ph (get @problems n)
-    body (:body ph)
+    body* (:body ph)
+    body (concat `(do) body*)
     eval-answer (eval body)
     exp-answer (:answer ph)]
     (if (= eval-answer exp-answer)
@@ -47,7 +48,7 @@
 (defmacro defproblem-old [n answer body] 
   `(if (= ~n (current_problem)) (println "problem" `n ~body)))
   
-(defmacro defproblem [n answer body] 
+(defmacro defproblem [n answer & body] 
   `(add-problem ~n ~answer (quote ~body)))
   
 (defn factor? [n,mult] (if (= (mod mult n) 0) true false))
@@ -914,53 +915,233 @@
 (defn mseq [s]
   (if (seq? s) s (if (nil? s) [] [s])))
 
-(tt/with-test 
-  (defn list-perms [l]
-    (println "here" l)
-    (let [
-        rp (fn [] (list-perms (rest l)))
-        fe (first l)
-        
-        el-added-to-first
-          (fn [ll el]
-            (if (= (count ll) 1)
-              (cons [(first )])
-            (cons
-              (cons el (mseq (first ll)))
-              (mseq (rest (mseq ll))))))]
-
-              
-        (if (>= 2 (count l))
-          [l [l]]
-          
-          (concat
-            (map #(cons fe %) [(rp)])
-            (map #(cons fe %) (rp))
-            (map #(cons [fe] %) [(rp)])
-            (map #(cons [fe] %) (rp))
-            (map #(el-added-to-first % fe) (rp))))))
-    (tt/is (= `((1 (2 3)) (1 2 3) ((1 2) 3)) (list-perms `(1 2 3)))))
-
 (defn reverse-nested [l]
   (if (or (seq? l) (vector? l))
     (map reverse-nested (reverse l))
     l))
     
-(println (reverse-nested [1 [2 3] 4]))
-
-(def seed `((1 (2 3 4)) (1 ((2 3) 4)) (1 (2 (3 4))) the rest in own parens
-(1 2 3 4) (1 (2 3) 4) (1 2 (3 4))))
 
 
+(declare list-perms)
 
+(defn my-cons [el l]
+
+  (cons el l))
+  
+(def a [])
+
+(defn printlist [i l]
+  (if (not (empty? l))
+    (do
+      (println i (first l))
+      (printlist (inc i) (rest l)))))
+    
+(defn list-permsx [l]
+  (let [
+    c (count l)
+    divd* (map #(split-at % l) (range 1 c))
+    
+    
+    thing
+      (fn [l]
+        (map #(apply concat %) 
+          (apply cb/cartesian-product (map list-permsx l))))
+    
+    res
+    (if (>= 2 c)
+      (if (= (count (flatten l)) 1)
+        l
+        l)
+      (concat
+        [l]
+        (map #(map thing %) divd*)))]
+
+      (def a (concat a ["l" l "div" divd* "res" res "\n"]))
+      res))
+      
+(defn list-perms [l]
+  (let [
+    c (count l)
+    divd* (map #(split-at % l) (range 1 c))
+    
+    
+    
+    
+    thing
+      (fn [l]
+        (let [
+          lp (map list-perms l)
+          cart (apply cb/cartesian-product lp)
+          res (map concat cart)]
+          (def a (concat a ["thing l" l "a" lp "cart" cart "c" (count cart) "res" res "\n"]))
+          res))
+    
+    res
+      (if (>= 2 c)
+        [l (flatten l)]
+        (mapcat thing divd*))]
+
+      (def a (concat a ["l" l "div" divd* "res" res "\n"]))
+      res))
+      
+(defproblem 50 nil
+  (tt/with-test))
+  
+[ [[1]] [[2 3]] ]
+
+
+    
+`(println (reverse-nested [1 [2 3] 4]))
+
+`(println (list-perms [1 2 3 4]))
+
+`(def lp (list-perms [1 2 3]))
+`(printlist 0 lp)
+
+`(apply println a)
+
+(defn inc-hash [k,h]
+  (let [
+    curr* (get h k)
+    curr (if (nil? curr*) 0 curr*)]
+    (merge h {k (inc curr)})))
+    
+(tt/with-test
+  (defn special-matches? [a b]
+    (if (= java.util.regex.Pattern (type b))
+      (not (nil? (re-find b a)))
+      (= a b)))
+  (tt/is (special-matches? "a" "a"))
+  (tt/is (special-matches? "abc" #"b"))
+  (tt/is (not (special-matches? "abc" #"d"))))
+    
+
+(defn index-of
+  ([c el] (index-of c el 0))
+  ([c el i]
+    (if (> i 1000) (throw (Throwable. (str "index high " el " " i))))
+    (if (special-matches? (first c) el)
+      i
+      (recur (rest c) el (inc i)))))
+      
+(defmacro fn-let [args let-binds & body]
+  `(fn ~args
+    (let ~let-binds
+      ~@body)))
+
+(defn myrand [c]
+  (let [res (rand-nth c)]
+  res))
+  
+(defn any? [f coll]
+  (not-empty (filter f coll)))
+  
+(defn lpad [n len]
+  (if (>= n 10)
+    (str n)
+    (str "0" n)))
+    
+(defn throw-str [& args]
+  (throw (Throwable. (apply str args))))
+
+(defproblem 84 "101524"
+  (let [
+    spaces* (s/split #" " "GO A1 CC1 A2 T1 R1 B1 CH1 B2 B3 JAIL C1 U1 C2 C3 R2 D1 CC2 D2 D3 FP E1 CH2 E2 E3 R3 F1 F2 U2 F3 G2J G1 G2 CC3 G3 R4 CH3 H1 T2 H2")
+    spaces (cycle spaces*)
+    
+    cc-cards (concat ["GO" "JAIL"] (take 14 (cycle [nil])))
+    ch-cards["GO" "JAIL" "C1" "E3" "H2" "R1" #"^R\d" #"^R\d" #"^U\d" -3 nil nil nil nil nil nil]
+    
+    cards {"CC1" cc-cards "CC2" cc-cards "CC3" cc-cards
+           "CH1" ch-cards "CH2" ch-cards "CH3" ch-cards
+           "G2J" ["JAIL"]}
+    
+    dice-roll (fn [] (+ 2 (rand-int 4) (rand-int 4)))
+    
+    valid-space?
+      (fn [space] (any? #(= space %) spaces*))
+    
+    validate-space
+      (fn [space] (if-not (valid-space? space) (throw-str "invalid space " space) space))
+      
+    space-num
+      (fn [space] (lpad (index-of spaces* space) 2))
+    
+    get-card
+      (fn-let [space] [c (get cards space)]
+        (if c (rand-nth c)))
+            
+    get-card-space
+      (fn-let [curr-space card]
+        [curr-i (index-of spaces (validate-space curr-space))
+         next-spaces (drop curr-i spaces)
+         all-matching (filter #(special-matches? % card) next-spaces)]
+         (if (= card -3)
+           (nth next-spaces (+ curr-i 37))
+           (first all-matching)))
+            
+          
+    advance
+      (fn-let [roll curr-space]
+        [i (index-of spaces (validate-space curr-space))
+         new-i (+ roll i)]
+         (nth spaces new-i))
+    
+    next-space
+      (fn-let [curr-space] [
+        roll (dice-roll)
+        dice-next (advance roll (validate-space curr-space))
+        card (get-card dice-next)]
+        (if-not card dice-next (get-card-space curr-space card)))
+          
+    next-game
+      (fn-let [game] [
+        space (next-space (:current game))
+        new-spaces (inc-hash space (:spaces game))]
+        {:spaces new-spaces :current (validate-space space)})
+    
+    new-game
+      {:spaces {} :current "GO"}
+      
+    advanced-game
+      (fn [game n]
+        (nth (iterate next-game game) n))
+        
+    top-3
+      (fn-let [spaces] [
+        sorted* (reverse (sort-by (fn [[k v]] v) spaces))
+        sorted (map (fn [[k v]] k) sorted*)
+        top (take 3 sorted)]
+        (println sorted*)
+        (apply str (map space-num top)))
+        
+    finished-game
+      (:spaces (advanced-game new-game 1000000))]
+        
+    (println finished-game)
+    (println (top-3 finished-game))))
+    
+    
+    
+
+(defproblem 99 17
+  (defn the-thing-xx [] 17)
+  (the-thing-xx))
+
+
+      
+(def fl
+  (fn-let [a] [b 2]
+    (+ a b)))
 
 
     
     
 (defn -main [& args]   
   (println "main-start")
-  `(run-problem 50) 
+  `(run-problem 84) 
   `(tt/run-tests 'main)
+  (monopoly)
   (println "main over"))
     
     

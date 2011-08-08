@@ -1,0 +1,1 @@
+set CLASSPATH=c:/code/euler_clojure/clojure-contrib-slim.jar;c:/code/euler_clojure/clojure.jar && java clojure.main %1
